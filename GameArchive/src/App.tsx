@@ -1,5 +1,7 @@
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import './App.css';
+import Collection from './Collection.tsx';
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,45 +47,61 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <h1>Game Archive</h1>
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="Search games..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <select onChange={(e) => setSearchType(e.target.value)} value={searchType}>
-          <option value="title">Title</option>
-          <option value="genre">Genre</option>
-        </select>
-        <button onClick={handleSearch}>Search</button>
-      </div>
+    <Router>
+      <div className="App">
+        <nav>
+          <Link to="/">Home</Link>
+          <Link to="/collection">My Collection</Link>
+        </nav>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <>
+                <h1>Game Archive</h1>
+                <div className="search-bar">
+                  <input
+                    type="text"
+                    placeholder="Search games..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <select onChange={(e) => setSearchType(e.target.value)} value={searchType}>
+                    <option value="title">Title</option>
+                    <option value="genre">Genre</option>
+                  </select>
+                  <button onClick={handleSearch}>Search</button>
+                </div>
 
-      <div className="results">
-        {data.map((game) => (
-          <div key={game.id} className="game-card" onClick={() => setSelectedGame(game)}>
-            <img src={game.background_image} alt={game.name} />
-            <h3>{game.name}</h3>
-          </div>
-        ))}
-      </div>
+                <div className="results">
+                  {data.map((game) => (
+                    <div key={game.id} className="game-card" onClick={() => setSelectedGame(game)}>
+                      <img src={game.background_image} alt={game.name} />
+                      <h3>{game.name}</h3>
+                    </div>
+                  ))}
+                </div>
 
-      {selectedGame && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>{selectedGame.name}</h2>
-            <img src={selectedGame.background_image} alt={selectedGame.name} />
-            <p>Released: {selectedGame.released}</p>
-            <p>Rating: {selectedGame.rating}</p>
-            <p>Genres: {selectedGame.genres.join(', ')}</p>
-            <button onClick={() => handleSaveToCollection(selectedGame)}>Save to Collection</button>
-            <button onClick={() => setSelectedGame(null)}>Close</button>
-          </div>
-        </div>
-      )}
-    </div>
+                {selectedGame && (
+                  <div className="modal">
+                    <div className="modal-content">
+                      <h2>{selectedGame.name}</h2>
+                      <img src={selectedGame.background_image} alt={selectedGame.name} />
+                      <p>Released: {selectedGame.released}</p>
+                      <p>Rating: {selectedGame.rating}</p>
+                      <p>Genres: {selectedGame.genres.join(', ')}</p>
+                      <button onClick={() => handleSaveToCollection(selectedGame)}>Save to Collection</button>
+                      <button onClick={() => setSelectedGame(null)}>Close</button>
+                    </div>
+                  </div>
+                )}
+              </>
+            }
+          />
+          <Route path="/collection" element={<Collection />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

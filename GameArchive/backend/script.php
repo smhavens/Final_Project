@@ -68,5 +68,21 @@ if (isset($_GET['search'])) {
     exit;
 }
 
+// Handle GET requests for getting the collection
+if (isset($_GET['action']) && $_GET['action'] === 'getCollection') {
+    $sql = "SELECT * FROM games";
+    $result = $conn->query($sql);
+
+    $games = [];
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $games[] = $row;
+        }
+    }
+
+    echo json_encode(["games" => $games]);
+    exit;
+}
+
 $conn->close();
 ?>
