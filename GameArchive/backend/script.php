@@ -8,6 +8,8 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', 'c:\xampp\php\logs\php_error_log');
 
+ob_start(); 
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -102,6 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     error_log("decoded input: " . print_r($input, true)); // Debugging line
 
+    if ($input === null) {
+        echo json_encode(["error" => "Invalid JSON input."]);
+        exit;
+    }
+
     if ($input['action'] === 'save') {
         $game = $input['game'];
 
@@ -160,7 +167,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
     }
     elseif ($input['action'] === 'delete') {
+        // echo "ATTEMPTING TO DELETE GAME";
         $game_id = $input['game_id'] ?? null;
+        // echo json_encode(["game_id" => $game_id]);
         if ($game_id) {
             $stmt = $conn->prepare("DELETE FROM games WHERE id = ?");
             $stmt->bind_param("i", $game_id);
@@ -172,6 +181,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         } else {
             echo json_encode(["error" => "Game ID is required."]);
+        }
+    }
+    elseif ($input['action'] === 'update') {
+        $game = $input['game'] ?? null;
+
+        if ($game) {
+            $id = $game['id'] ?? null;
+            $personal_rating = $game['personal_rating'] ?? null;
+            $notes = $game['notes'] ?? null;
+            $status = $game['status'] ?? null;
+
+            if ($id === null) {
+                echo json_encode(["error" => "Game ID is required for updating."]);
+                exit;
+            }
+
+            $stmt = $conn->prepare("
+                UPDATE games
+                SET personal_rating = ?, notes = ?, status = ?
+                WHERE id = ?
+            ");
+            $stmt->bind_param(
+                "issi",
+                $personal_rating,
+                $notes,
+                $status,
+                $id
+            );
+
+            if ($stmt->execute()) {
+                echo json_encode(["message" => "Game updated successfully!"]);
+            } else {
+                echo json_encode(["error" => "Failed to update game."]);
+            }
+
+            $stmt->close();
+        } else {
+            echo json_encode(["error" => "Invalid game data."]);
         }
     } else {
         echo json_encode(["error" => "Invalid action."]);
@@ -230,4 +277,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'getCollection') {
 
 // Close Database Connection
 $conn->close();
+
+$output = ob_get_clean(); // Get the buffer contents
+if (!empty($output)) {
+    error_log("Unexpected output: " . $output); // Log unexpected output
+}
 ?>
