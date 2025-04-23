@@ -11,7 +11,7 @@ enum Status {
 interface Game {
   id: number;
   title: string;
-  description: string;
+  // description: string;
   category: number;
   genres: string[];
   release_date: string;
@@ -63,6 +63,7 @@ function Collection() {
             genres: game.genres.map((genre: string) => categoryMap[Number(genre)] || genre),
             title: game.title || "Unknown",
             release_date: game.release_date || "Unknown",
+            // description: game.description || "No description available",
             rating: game.rating || 0,
           }))
           .sort((a: Game, b: Game) => a.title.localeCompare(b.title)); // Sort alphabetically
@@ -192,6 +193,7 @@ function Collection() {
             <h3>{game.title}</h3>
             <p>Released: {game.release_date || 'Unknown'}</p>
             <p>Rating: {game.rating || 'N/A'}</p>
+            {/* <p>Description: {game.description}</p> */}
             <p>Genres: {game.genres.join(', ')}</p>
             <p>Notes: {game.notes}</p>
             <p>Personal Rating: {game.personal_rating}</p>
@@ -226,6 +228,7 @@ function Collection() {
                 <p><strong>Released:</strong> {selectedGame.release_date}</p>
                 <p><strong>Rating:</strong> {selectedGame.rating}</p>
                 <p><strong>Genres:</strong> {selectedGame.genres.join(', ')}</p>
+                {/* <p><strong>Description:</strong> {selectedGame.description}</p> */}
 
                 {/* Personal Rating Input */}
                 <label htmlFor="personalRating" className="form-label">Personal Rating:</label>

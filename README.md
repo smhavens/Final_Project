@@ -5,13 +5,14 @@ A one-stop solution for managing your personal game collection. This application
 
 ## Screenshots
 ### Home Page
-![Home Page](path/to/homepage-screenshot.png)
+![Home Page](pictures/full_search.png)
 
 ### Collection Page
-![Collection Page](path/to/collection-screenshot.png)
+![Collection Page](pictures/full_collection.png)
 
 ### Game Modal
-![Game Modal](path/to/game-modal-screenshot.png)
+![Game Save Modal](pictures/laptop_home_modal.png)
+![Game Update Modal](pictures/laptop_collection_modal.png)
 
 ---
 
@@ -19,42 +20,64 @@ A one-stop solution for managing your personal game collection. This application
 
 ### Database Design
 The database is designed with three main tables: `games`, `categories`, and `jnct_game_category`. Below is the schema:
+![schema photo](pictures/schema.png)
 
 #### Tables:
 1. **`games`**:
-   - Stores information about each game, including title, description, release date, rating, personal rating, notes, and status.
+   - Stores information about each game (that are saved to the Collection), including title, description (unused), release date, rating, personal rating, notes, and status.
    - Includes a `background_image` field for storing the game's image URL.
 
 2. **`categories`**:
-   - Stores the list of game genres (e.g., Adventure, Action, RPG).
+   - Stores the list of game genres (e.g., Adventure, Action, RPG) and an ID for each one (these do no correlate to the RAWG genre ID, which are instead mapped inside App.tsx). There are 19 Genres.
 
 3. **`jnct_game_category`**:
-   - A junction table that links games to their respective genres.
+   - A junction table that links games to their respective genres, consisting only of two foreign keys linking a given game to a genre (a game can have many genres).
 
 #### Schema:
 ```sql
-CREATE TABLE [games](http://_vscodecontentref_/1) (
-  [id](http://_vscodecontentref_/2) int(11) NOT NULL,
-  [title](http://_vscodecontentref_/3) varchar(32) NOT NULL,
-  [description](http://_vscodecontentref_/4) text DEFAULT NULL,
-  [release_date](http://_vscodecontentref_/5) date NOT NULL DEFAULT current_timestamp(),
-  [rawg_id](http://_vscodecontentref_/6) int(11) NOT NULL,
-  [rating](http://_vscodecontentref_/7) decimal(3,2) DEFAULT NULL,
-  [status](http://_vscodecontentref_/8) enum('not_started','playing','completed','on_hold','dropped') NOT NULL DEFAULT 'not_started',
-  [personal_rating](http://_vscodecontentref_/9) decimal(3,2) DEFAULT NULL,
-  [notes](http://_vscodecontentref_/10) text DEFAULT NULL,
-  [background_image](http://_vscodecontentref_/11) varchar(255) NOT NULL
-);
+CREATE TABLE `games` (
+  `id` int(11) NOT NULL,
+  `title` varchar(32) NOT NULL,
+  `description` text DEFAULT NULL,
+  `release_date` date NOT NULL DEFAULT current_timestamp(),
+  `rawg_id` int(11) NOT NULL,
+  `rating` decimal(3,2) DEFAULT NULL,
+  `status` enum('not_started','playing','completed','on_hold','dropped') NOT NULL DEFAULT 'not_started',
+  `personal_rating` decimal(3,2) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `background_image` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `categories` (
-  [id](http://_vscodecontentref_/12) int(11) NOT NULL,
-  [name](http://_vscodecontentref_/13) varchar(32) NOT NULL
-);
+  `id` int(11) NOT NULL,
+  `name` varchar(32) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `categories` (`id`, `name`) VALUES
+(1, 'Adventure'),
+(2, 'Action'),
+(3, 'RPG'),
+(4, 'Shooter'),
+(5, 'Puzzle'),
+(6, 'Strategy'),
+(7, 'Sports'),
+(8, 'Fighting'),
+(9, 'Simulation'),
+(10, 'Platformer'),
+(11, 'Arcade'),
+(12, 'Racing'),
+(13, 'Indie'),
+(14, 'Casual'),
+(15, 'MMO'),
+(16, 'Family'),
+(17, 'Board'),
+(18, 'Card'),
+(19, 'Educational');
 
 CREATE TABLE `jnct_game_category` (
   `game_FK` int(11) NOT NULL,
   `category_FK` int(11) NOT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
 
 ---
@@ -70,7 +93,7 @@ Use the [SQL](gamearchive.sql) file to import the Game Archive database with MyS
 
 ### Prepare the Backend
 This is where ![PHP Script](GameArchive/backend/script.php) is used and run on a PHP server. However you intend to start it, you will most likely use the following command `php -S localhost:8000` while in `GameArchive\backend`to ensure it is on the correct port for the system.
-If, for whatever reason, port 8000 is not available: go through ![Collections](GameArchive/src/Collections.tsx) and ![App](GameArchive/src/App.tsx) and change fetch requests from `8000` to whatever port you use.
+If, for whatever reason, port 8000 is not available: go through ![Collection](GameArchive/src/Collection.tsx) and ![App](GameArchive/src/App.tsx) and change fetch requests from `8000` to whatever port you use.
 
 ### Prepare the Frontend
 Go into the GameArchive directory in your terminal (or VSCode if you are running the system through it) and then run

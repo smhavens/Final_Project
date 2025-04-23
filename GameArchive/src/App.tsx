@@ -141,6 +141,7 @@ function App() {
     background_image: string;
     released: string;
     rating: number;
+    // description: string;
     genres: string[];
   }
 

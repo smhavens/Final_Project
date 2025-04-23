@@ -93,7 +93,7 @@ function set_genres(PDO $pdo, int $game_id, int $genre) {
 
 function get_games_of_genre(PDO $pdo, int $genre_id) {
     $stmt = $pdo->prepare("
-            SELECT g.id, g.title, g.description, g.release_date, g.rawg_id, g.background_image, g.rating
+            SELECT g.id, g.title, g.release_date, g.rawg_id, g.background_image, g.rating
             FROM games g
             JOIN jnct_game_category j ON g.id = j.game_FK
             WHERE j.category_FK = :genre_id;");
@@ -136,6 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $released = $game['released'] ?? null;
         $rating = $game['rating'] ?? null;
         $background_image = $game['background_image'] ?? null;
+        // $description = $game['description'] ?? null;
         $genres = $game['genres'] ?? [];
         $genre_ids = array_map(fn($genre) => $category_map[$genre] ?? null, $genres);
         $genres = implode(", ", $genres);
@@ -279,10 +280,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'search') {
         $simplified[] = [
             'id' => $game['id'],
             'name' => $game['name'],
-            'released' => $game['released'],
-            'rating' => $game['rating'],
-            'background_image' => $game['background_image'],
-            'genres' => array_map(fn($genre) => $genre['name'], $game['genres']),
+            'released' => $game['released'] ?? 'Unknown', // Default to 'Unknown' if not set
+            // 'description' => $game['description'] ?? 'No description available.', // Default to placeholder
+            'rating' => $game['rating'] ?? 0, // Default to 0 if not set
+            'background_image' => $game['background_image'] ?? '', // Default to empty string if not set
+            'genres' => array_map(fn($genre) => $genre['name'], $game['genres'] ?? []), // Handle missing genres
         ];
     }
 
@@ -333,10 +335,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'genreSearch') {
         $simplified[] = [
             'id' => $game['id'],
             'name' => $game['name'],
-            'released' => $game['released'],
-            'rating' => $game['rating'],
-            'background_image' => $game['background_image'],
-            'genres' => array_map(fn($genre) => $genre['name'], $game['genres']),
+            'released' => $game['released'] ?? 'Unknown', // Default to 'Unknown' if not set
+            // 'description' => $game['description'] ?? 'No description available.', // Default to placeholder
+            'rating' => $game['rating'] ?? 0, // Default to 0 if not set
+            'background_image' => $game['background_image'] ?? '', // Default to empty string if not set
+            'genres' => array_map(fn($genre) => $genre['name'], $game['genres'] ?? []), // Handle missing genres
         ];
     }
 
