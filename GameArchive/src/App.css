@@ -43,8 +43,10 @@
 
 .search-bar {
   display: flex;
+  flex-wrap: wrap; /* Allow wrapping for smaller screens */
   gap: 10px;
   margin-bottom: 20px;
+  justify-content: center; /* Center the search bar on smaller screens */
 }
 
 nav {
@@ -57,6 +59,8 @@ nav {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+  justify-content: center; /* Center the game cards */
+  padding: 20px; /* Add padding around the game cards */
 }
 
 .game-card {
@@ -94,4 +98,42 @@ nav {
   width: 100%;
   height: auto;
   margin-bottom: 20px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  /* Tablet View */
+  .search-bar {
+    flex-direction: column; /* Stack dropdowns vertically */
+    align-items: center;
+  }
+
+  .game-card {
+    width: 150px; /* Reduce card size for tablets */
+  }
+
+  .results {
+    gap: 15px; /* Reduce spacing between cards */
+  }
+}
+
+@media (max-width: 480px) {
+  /* Phone View */
+  .search-bar {
+    flex-direction: column; /* Stack dropdowns vertically */
+    align-items: center;
+    gap: 15px; /* Reduce spacing between elements */
+  }
+
+  .game-card {
+    width: 120px; /* Further reduce card size for phones */
+  }
+
+  .results {
+    gap: 10px; /* Reduce spacing between cards */
+  }
+
+  .modal-content {
+    width: 90%; /* Make modal content fit smaller screens */
+  }
 }

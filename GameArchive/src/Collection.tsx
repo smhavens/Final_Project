@@ -76,6 +76,22 @@ function Collection() {
       .catch((err) => console.error("Error:", err));
   }, []);
 
+  useEffect(() => {
+    let filtered = collection;
+
+    // Apply genre filter
+    if (selectedGenre !== 'All') {
+      filtered = filtered.filter((game) => game.genres.includes(selectedGenre));
+    }
+
+    // Apply status filter
+    if (selectedStatus !== 'All') {
+      filtered = filtered.filter((game) => game.status === selectedStatus);
+    }
+
+    setFilteredCollection(filtered);
+  }, [selectedGenre, selectedStatus, collection]);
+
   const handleRemoveGame = (gameId: number) => {
     console.log(JSON.stringify({ action: 'delete', game_id: gameId }));
     fetch('http://localhost:8000/script.php', {
@@ -104,7 +120,7 @@ function Collection() {
       });
   };
 
-  const handleUpdateGame = () => {
+  const handleUpdateGame = (selectedGame: Game) => {
     if (!selectedGame) return;
     console.log(JSON.stringify({ action: 'update', selectedGame }));
 
@@ -136,27 +152,11 @@ function Collection() {
   };
 
   const handleGenreChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const genre = event.target.value;
-    setSelectedGenre(genre);
-
-    if (genre === 'All') {
-      setFilteredCollection(collection);
-    } else {
-      const filtered = collection.filter((game) => game.genres.includes(genre));
-      setFilteredCollection(filtered);
-    }
+    setSelectedGenre(event.target.value);
   };
 
   const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const status = event.target.value;
-    setSelectedStatus(status);
-
-    if (status === 'All') {
-      setFilteredCollection(collection);
-    } else {
-      const filtered = collection.filter((game) => game.status === status);
-      setFilteredCollection(filtered);
-    }
+    setSelectedStatus(event.target.value);
   };
 
   return (
@@ -164,7 +164,7 @@ function Collection() {
       <h1>My Collection</h1>
 
       {/* Genre and Status Dropdowns */}
-      <div>
+      <div className="search-bar">
         <label htmlFor="genre-filter">Filter by Genre: </label>
         <select id="genre-filter" value={selectedGenre} onChange={handleGenreChange}>
           <option value="All">All</option>
@@ -202,47 +202,107 @@ function Collection() {
 
       {/* Modal for Viewing and Updating Game */}
       {selectedGame && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>{selectedGame.title}</h2>
-            <p><strong>Released:</strong> {selectedGame.release_date}</p>
-            <p><strong>Rating:</strong> {selectedGame.rating}</p>
-            <p><strong>Genres:</strong> {selectedGame.genres.join(', ')}</p>
-            <label>
-              <strong>Notes:</strong>
-              <textarea
-                value={selectedGame.notes}
-                onChange={(e) => setSelectedGame({ ...selectedGame, notes: e.target.value })}
-              />
-            </label>
-            <label>
-              <strong>Personal Rating:</strong>
-              <input
-                type="number"
-                value={selectedGame.personal_rating}
-                onChange={(e) =>
-                  setSelectedGame({ ...selectedGame, personal_rating: Number(e.target.value) })
-                }
-              />
-            </label>
-            <label>
-              <strong>Status:</strong>
-              <select
-                value={selectedGame.status}
-                onChange={(e) =>
-                  setSelectedGame({ ...selectedGame, status: e.target.value as Status })
-                }
-              >
-                {Object.values(Status).map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button onClick={handleUpdateGame}>Save Changes</button>
-            <button onClick={() => handleRemoveGame(selectedGame.id)}>Delete Game</button>
-            <button onClick={() => setSelectedGame(null)}>Cancel</button>
+        <div
+          className="modal fade show"
+          style={{ display: 'block', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          tabIndex={-1}
+        >
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">{selectedGame.title}</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setSelectedGame(null)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <img
+                  src={selectedGame.background_image}
+                  className="img-fluid mb-3"
+                  alt={selectedGame.title}
+                />
+                <p><strong>Released:</strong> {selectedGame.release_date}</p>
+                <p><strong>Rating:</strong> {selectedGame.rating}</p>
+                <p><strong>Genres:</strong> {selectedGame.genres.join(', ')}</p>
+
+                {/* Personal Rating Input */}
+                <label htmlFor="personalRating" className="form-label">Personal Rating:</label>
+                <div className="d-flex align-items-center">
+                  <input
+                    type="range"
+                    id="personalRating"
+                    className="form-range me-3"
+                    min="0"
+                    max="5"
+                    step="0.25"
+                    value={selectedGame.personal_rating ?? ""} // Use empty string if null/undefined
+                    onChange={(e) =>
+                      setSelectedGame({
+                        ...selectedGame,
+                        personal_rating: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                  />
+                  <span>{selectedGame.personal_rating ?? 0}</span>
+                </div>
+
+                {/* Status Dropdown */}
+                <label htmlFor="status" className="form-label mt-3">Status:</label>
+                <select
+                  id="status"
+                  className="form-select"
+                  value={selectedGame.status}
+                  onChange={(e) =>
+                    setSelectedGame({
+                      ...selectedGame,
+                      status: e.target.value as Status,
+                    })
+                  }
+                  >
+                    <option value="" disabled>Select a status</option>
+                      {Object.keys(Status).map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                  </select>
+
+                {/* Notes Textarea */}
+                <label htmlFor="notes" className="form-label mt-3">Notes:</label>
+                <textarea
+                  id="notes"
+                  className="form-control"
+                  value={selectedGame.notes ?? ""} // Use empty string if null/undefined
+                  onChange={(e) =>
+                    setSelectedGame({
+                      ...selectedGame,
+                      notes: e.target.value,
+                    })
+                  }
+                ></textarea>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-success"
+                  onClick={() => {
+                    handleUpdateGame(selectedGame);
+                    setSelectedGame(null);
+                  }}
+                >
+                  Update
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => {
+                    handleRemoveGame(selectedGame.id);
+                    setSelectedGame(null)}}
+                >
+                  Remove from Collection
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

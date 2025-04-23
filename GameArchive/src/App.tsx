@@ -1,6 +1,6 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useState, useEffect} from 'react';
+import { useState } from 'react';
 import './App.css';
 import Collection from './Collection.tsx';
 
@@ -11,7 +11,8 @@ function App() {
   const [data, setData] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [sortType, setSortType] = useState<'alphabetical' | 'rating'>('alphabetical'); // Sorting type
-  const [page, setPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMorePages, setHasMorePages] = useState(true); // Track if there are more pages to fetch
   const [isLoading, setIsLoading] = useState(false);
 
   const categoryMap: { [key: string]: number } = {
@@ -37,8 +38,9 @@ function App() {
   };
 
   const handleSearch = () => {
-    setPage(1);
+    setCurrentPage(1);
     setData([]);
+    setHasMorePages(true); // Reset hasMorePages when a new search is initiated
     console.log("Search initiated:", { searchQuery, searchType, sortType });
 
     if (searchType === 'title') {
@@ -66,7 +68,11 @@ function App() {
       })
       .then((data) => {
         console.log("Search results:", data);
-        setData((prevData) => [...prevData, ...(data.results || [])]);
+        if (data.results.length === 0) {
+          setHasMorePages(false); // No more pages to fetch
+        } else {
+          setData(data.results); // Replace data instead of appending
+        }
         setIsLoading(false);
       })
       .catch((err) => {
@@ -87,7 +93,11 @@ function App() {
       })
       .then((data) => {
         console.log("Genre search results:", data);
-        setData((prevData) => [...prevData, ...(data.results || [])]);
+        if (data.results.length === 0) {
+          setHasMorePages(false); // No more pages to fetch
+        } else {
+          setData(data.results); // Replace data instead of appending
+        }
         setIsLoading(false);
       })
       .catch((err) => {
@@ -101,35 +111,6 @@ function App() {
     const genreName = event.target.value;
     setSearchQuery(genreName);
   };
-
-  const handleScroll = () => {
-    if (
-      location.pathname === '/' && // Only trigger on the search page
-      window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.offsetHeight - 100 &&
-      !isLoading
-    ) {
-      setPage((prevPage) => prevPage + 1);
-    }
-  };
-
-  useEffect(() => {
-    if (location.pathname === '/') { // Only fetch data on the search page
-      if (searchType === 'title') {
-        fetchResults(page);
-      } else if (searchType === 'genre') {
-        const genreId = categoryMap[searchQuery];
-        if (genreId) {
-          fetchGenres(genreId, page);
-        }
-      }
-    }
-  }, [page, location.pathname]);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleSaveToCollection = (game: Game): void => {
     console.log(JSON.stringify({ action: 'save', game }));
@@ -168,7 +149,18 @@ function App() {
       <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <div className="container-fluid">
           <Link className="navbar-brand" to="/">Game Archive</Link>
-          <div className="collapse navbar-collapse">
+          <button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+          <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav me-auto mb-2 mb-lg-0">
               <li className="nav-item">
                 <Link className="nav-link" to="/">Home</Link>
@@ -256,6 +248,31 @@ function App() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Pagination Buttons */}
+                <div className="pagination mt-4">
+                  <button
+                    className="btn btn-primary"
+                    disabled={currentPage === 1}
+                    onClick={() => {
+                      setCurrentPage((prevPage) => prevPage - 1);
+                      fetchResults(currentPage - 1);
+                    }}
+                  >
+                    Previous
+                  </button>
+                  <span className="mx-2">Page {currentPage}</span>
+                  <button
+                    className="btn btn-primary"
+                    disabled={!hasMorePages}
+                    onClick={() => {
+                      setCurrentPage((prevPage) => prevPage + 1);
+                      fetchResults(currentPage + 1);
+                    }}
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
 
