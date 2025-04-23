@@ -45,7 +45,7 @@ function Collection() {
   const [filteredCollection, setFilteredCollection] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [selectedGenre, setSelectedGenre] = useState<string>('All');
-  const [selectedStatus, setSelectedStatus] = useState<Status>(Status.NotStarted);
+  const [selectedStatus, setSelectedStatus] = useState<string>('All'); // Default to "All"
 
   useEffect(() => {
     fetch('http://localhost:8000/script.php?action=getCollection')
@@ -53,8 +53,9 @@ function Collection() {
       .then((data) => {
         console.log("Collection data:", data);
 
-        const updatedCollection = data.games.map((game: Game) => {
-          const transformedGame = {
+        // Sort games alphabetically by title
+        const updatedCollection = data.games
+          .map((game: Game) => ({
             ...game,
             id: Number(game.id),
             category: Number(game.category),
@@ -63,12 +64,11 @@ function Collection() {
             title: game.title || "Unknown",
             release_date: game.release_date || "Unknown",
             rating: game.rating || 0,
-          };
-          console.log("Transformed game:", transformedGame);
-          return transformedGame;
-        });
+          }))
+          .sort((a: Game, b: Game) => a.title.localeCompare(b.title)); // Sort alphabetically
 
         setCollection(updatedCollection);
+        setFilteredCollection(updatedCollection);
 
         console.log("Updated collection:", updatedCollection);
         console.log("Collection length:", updatedCollection.length);
@@ -77,177 +77,177 @@ function Collection() {
   }, []);
 
   const handleRemoveGame = (gameId: number) => {
-        console.log(JSON.stringify({ action: 'delete', game_id: gameId }));
-        fetch('http://localhost:8000/script.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'delete', game_id: gameId }),
-        })
-        .then((res) => {
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then((response) => {
-            console.log("Remove response:", response);
-            if (response.message === "Game deleted successfully!") {
-                const updatedCollection = collection.filter((game) => game.id !== gameId);
-                setCollection(updatedCollection);
-                setFilteredCollection(updatedCollection);
-                setSelectedGame(null);
-            }
-        })
-        .catch((err) => {
-            console.error("Error:", err);
-            alert("Failed to remove game from collection.");
-        });
-    };
-
-    const handleUpdateGame = () => {
-        if (!selectedGame) return;
-        console.log(JSON.stringify({ action: 'update', selectedGame }));
-
-        fetch('http://localhost:8000/script.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'update', game: selectedGame }),
-        })
-        .then((res) => {
-            if (!res.ok) {
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            return res.json();
-        })
-        .then((response) => {
-            if (response.message === "Game updated successfully!") {
-                const updatedCollection = collection.map((game) => 
-                    game.id === selectedGame?.id ? selectedGame : game
-                );
-                setCollection(updatedCollection);
-                setFilteredCollection(updatedCollection);
-                setSelectedGame(null);
-            }
-        })
-        .catch((err) => {
-            console.error("Error:", err);
-            alert("Failed to update game in collection.");
-        });
-    }
-
-    const handleGenreChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const genre = event.target.value;
-        setSelectedGenre(genre);
-    
-        if (genre === 'All') {
-          setFilteredCollection(collection);
-        } else {
-          const filtered = collection.filter((game) => game.genres.includes(genre));
-          setFilteredCollection(filtered);
+    console.log(JSON.stringify({ action: 'delete', game_id: gameId }));
+    fetch('http://localhost:8000/script.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', game_id: gameId }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
         }
-    };
-
-    const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => { 
-        const status = event.target.value;
-        setSelectedStatus(status as Status);
-
-        if (status === 'All') {
-            setFilteredCollection(collection);
-            // setSelectedGame({ ...selectedGame, status });
-        } else {
-            const filtered = collection.filter((game) => game.status === status);
-            setFilteredCollection(filtered);
-            // setSelectedGame({ ...selectedGame, status });
+        return res.json();
+      })
+      .then((response) => {
+        console.log("Remove response:", response);
+        if (response.message === "Game deleted successfully!") {
+          const updatedCollection = collection.filter((game) => game.id !== gameId);
+          setCollection(updatedCollection);
+          setFilteredCollection(updatedCollection);
+          setSelectedGame(null);
         }
-    }
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+        alert("Failed to remove game from collection.");
+      });
+  };
 
-    return (
-        <div>
-          <h1>My Collection</h1>
-    
-          {/* Genre Dropdown */}
-          <div>
-            <label htmlFor="genre-filter">Filter by Genre: </label>
-            <select id="genre-filter" value={selectedGenre} onChange={handleGenreChange}>
-              <option value="All">All</option>
-              {Object.values(categoryMap).map((genre) => (
-                <option key={genre} value={genre}>
-                  {genre}
-                </option>
-              ))}
-            </select>
-            <label htmlFor="status-filter">Filter by Status: </label>
-            <select id="status-filter" value={selectedStatus} onChange={handleStatusChange}>
-              <option value="All">All</option>
-              {Object.values(Status).map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+  const handleUpdateGame = () => {
+    if (!selectedGame) return;
+    console.log(JSON.stringify({ action: 'update', selectedGame }));
+
+    fetch('http://localhost:8000/script.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', game: selectedGame }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((response) => {
+        if (response.message === "Game updated successfully!") {
+          const updatedCollection = collection.map((game) =>
+            game.id === selectedGame?.id ? selectedGame : game
+          );
+          setCollection(updatedCollection);
+          setFilteredCollection(updatedCollection);
+          setSelectedGame(null);
+        }
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+        alert("Failed to update game in collection.");
+      });
+  };
+
+  const handleGenreChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const genre = event.target.value;
+    setSelectedGenre(genre);
+
+    if (genre === 'All') {
+      setFilteredCollection(collection);
+    } else {
+      const filtered = collection.filter((game) => game.genres.includes(genre));
+      setFilteredCollection(filtered);
+    }
+  };
+
+  const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const status = event.target.value;
+    setSelectedStatus(status);
+
+    if (status === 'All') {
+      setFilteredCollection(collection);
+    } else {
+      const filtered = collection.filter((game) => game.status === status);
+      setFilteredCollection(filtered);
+    }
+  };
+
+  return (
+    <div>
+      <h1>My Collection</h1>
+
+      {/* Genre and Status Dropdowns */}
+      <div>
+        <label htmlFor="genre-filter">Filter by Genre: </label>
+        <select id="genre-filter" value={selectedGenre} onChange={handleGenreChange}>
+          <option value="All">All</option>
+          {Object.values(categoryMap).map((genre) => (
+            <option key={genre} value={genre}>
+              {genre}
+            </option>
+          ))}
+        </select>
+        <label htmlFor="status-filter">Filter by Status: </label>
+        <select id="status-filter" value={selectedStatus} onChange={handleStatusChange}>
+          <option value="All">All</option>
+          {Object.values(Status).map((status) => (
+            <option key={status} value={status}>
+              {status}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="results">
+        {filteredCollection.map((game) => (
+          <div key={game.id} className="game-card" onClick={() => setSelectedGame(game)}>
+            <img src={game.background_image} alt={game.title} />
+            <h3>{game.title}</h3>
+            <p>Released: {game.release_date || 'Unknown'}</p>
+            <p>Rating: {game.rating || 'N/A'}</p>
+            <p>Genres: {game.genres.join(', ')}</p>
+            <p>Notes: {game.notes}</p>
+            <p>Personal Rating: {game.personal_rating}</p>
+            <p>Status: {game.status}</p>
           </div>
-    
-          <div className="results">
-            {filteredCollection.map((game) => (
-              <div key={game.id} className="game-card" onClick={() => setSelectedGame(game)}>
-                <img src={game.background_image} alt={game.title} />
-                <h3>{game.title}</h3>
-                <p>Released: {game.release_date || 'Unknown'}</p>
-                <p>Rating: {game.rating || 'N/A'}</p>
-                <p>Genres: {game.genres.join(', ')}</p>
-                <p>Notes: {game.notes}</p>
-                <p>Personal Rating: {game.personal_rating}</p>
-                <p>Status: {game.status}</p>
-                {/* <button onClick={() => setSelectedGame(game)}>View Details</button> */}
-                {/* <button onClick={() => removeButton(game.id)}>Remove</button> */}
-              </div>
-            ))}
+        ))}
+      </div>
+
+      {/* Modal for Viewing and Updating Game */}
+      {selectedGame && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>{selectedGame.title}</h2>
+            <p><strong>Released:</strong> {selectedGame.release_date}</p>
+            <p><strong>Rating:</strong> {selectedGame.rating}</p>
+            <p><strong>Genres:</strong> {selectedGame.genres.join(', ')}</p>
+            <label>
+              <strong>Notes:</strong>
+              <textarea
+                value={selectedGame.notes}
+                onChange={(e) => setSelectedGame({ ...selectedGame, notes: e.target.value })}
+              />
+            </label>
+            <label>
+              <strong>Personal Rating:</strong>
+              <input
+                type="number"
+                value={selectedGame.personal_rating}
+                onChange={(e) =>
+                  setSelectedGame({ ...selectedGame, personal_rating: Number(e.target.value) })
+                }
+              />
+            </label>
+            <label>
+              <strong>Status:</strong>
+              <select
+                value={selectedGame.status}
+                onChange={(e) =>
+                  setSelectedGame({ ...selectedGame, status: e.target.value as Status })
+                }
+              >
+                {Object.values(Status).map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button onClick={handleUpdateGame}>Save Changes</button>
+            <button onClick={() => handleRemoveGame(selectedGame.id)}>Delete Game</button>
+            <button onClick={() => setSelectedGame(null)}>Cancel</button>
           </div>
-    
-          {/* Modal for Removing Game */}
-          {selectedGame && (
-            <div className="modal">
-              <div className="modal-content">
-                <h2>{selectedGame.title}</h2>
-                <p><strong>Released:</strong> {selectedGame.release_date}</p>
-                <p><strong>Rating:</strong> {selectedGame.rating}</p>
-                <p><strong>Genres:</strong> {selectedGame.genres.join(', ')}</p>
-                <label>
-                    <strong>Notes:</strong>
-                    <textarea
-                        value={selectedGame.notes}
-                        onChange={(e) => setSelectedGame({ ...selectedGame, notes: e.target.value })}
-                    />
-                </label>
-                <label>
-                    <strong>Personal Rating:</strong>
-                    <input
-                        type="number"
-                        value={selectedGame.personal_rating}
-                        onChange={(e) => setSelectedGame({ ...selectedGame, personal_rating: Number(e.target.value) })}
-                    />
-                </label>
-                <label>
-                    <strong>Status:</strong>
-                    <select
-                        value={selectedGame.status}
-                        onChange={(e) => setSelectedGame({ ...selectedGame, status: e.target.value as Status })}
-                    >
-                        {Object.values(Status).map((status) => (
-                            <option key={status} value={status}>
-                                {status}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <button onClick={handleUpdateGame}>Save Changes</button>
-                <button onClick={() => handleRemoveGame(selectedGame.id)}>Delete Game</button>
-                <button onClick={() => setSelectedGame(null)}>Cancel</button>
-              </div>
-            </div>
-          )}
         </div>
-      );
-    }
-    
-    export default Collection;
+      )}
+    </div>
+  );
+}
+
+export default Collection;

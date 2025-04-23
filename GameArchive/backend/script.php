@@ -4,11 +4,19 @@ header('Content-Type: application/json');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
 ini_set('log_errors', 1);
-ini_set('error_log', 'c:\xampp\php\logs\php_error_log');
+error_reporting(E_ALL);
+
+error_log("Script started." . PHP_EOL); // Debugging line
+// ini_set('error_log', 'c:\xampp\php\logs\php_error_log');
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
 ob_start(); 
+
+// echo "Script started." . PHP_EOL;
+// flush();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -32,7 +40,7 @@ $category_map = [
     'Casual' => 14,
     'MMO'=> 15,
     'Family'=> 16,
-    'Board'=> 17,
+    'Board Games'=> 17,
     'Card'=> 18,
     'Educational'=> 19,
 ];
@@ -46,6 +54,7 @@ $host = 'localhost';
 $username = 'root';
 $password = '';
 $database = 'gamearchive';
+$page_size = 9;
 
 $conn = new mysqli($host, $username, $password, $database);
 
@@ -59,6 +68,7 @@ try {
 } catch (PDOException $e) {
     die(json_encode(["error" => "Database connection failed: " . $e->getMessage()]));
 }
+
 
 function get_genres(PDO $pdo, int $game_id) {
     $stmt = $pdo->prepare("
@@ -227,12 +237,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Handle GET Requests for Searching Games
-if (isset($_GET['search'])) {
-    $query = urlencode($_GET['search']);
+if (isset($_GET['action']) && $_GET['action'] === 'search') {
+    // $query = urlencode($_GET['search']);
+    // echo "Searching for games..." . PHP_EOL;
+    // echo "Incoming GET request: " . print_r($_GET, true) . PHP_EOL;
+    // flush();
+    $query = $_GET['query'] ?? '';
     $type = $_GET['type'] ?? 'title';
-    $rawg_query_url = "$rawg_url?key=$key&search=$query&page_size=5";
+    $page = $_GET['page'] ?? 1;
+    $sort = $_GET['sort'] ?? 'alphabetical';
+    $rawg_query_url = "$rawg_url?key=$key&page=$page&page_size=$page_size";
+
+    if ($type === "title") {
+        $rawg_query_url .= "&search=" . urlencode($query);
+    }
+
+    // echo "RAWG Query URL: " . $rawg_query_url . PHP_EOL;
+
+    if ($sort === '-rating') {
+        $rawg_query_url .= "&ordering=rating";
+    } elseif ($sort === 'alphabetical') {
+        $rawg_query_url .= "&ordering=name";
+    }
 
     $rawg_response = file_get_contents($rawg_query_url);
+
+    // error_log("Request: " . print_r($_GET, true));
+    // error_log("RAWG API Response: " . $rawg_response);
+
+    // echo "Request: " . print_r($_GET, true) . PHP_EOL;
+    // echo "RAWG API Response: " . $rawg_response . PHP_EOL;
+
     if ($rawg_response === FALSE) {
         die(json_encode(["error" => "Failed to fetch data from RAWG API."]));
     }
@@ -250,6 +285,66 @@ if (isset($_GET['search'])) {
             'genres' => array_map(fn($genre) => $genre['name'], $game['genres']),
         ];
     }
+
+    if ($sort === 'alphabetical') {
+        usort($simplified, fn($a, $b) => strcmp($a['name'], $b['name']));
+    } elseif ($sort === 'rating') {
+        usort($simplified, fn($a, $b) => $b['rating'] <=> $a['rating']);
+    }
+
+    echo json_encode([
+        'results' => $simplified,
+    ]);
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'genreSearch') {
+    $genre_id = $_GET['genre_id'] ?? null;
+    $page = $_GET['page'] ?? 1;
+    $sort = $_GET['sort'] ?? 'alphabetical';
+
+    error_log("Genre ID: " . print_r($genre_id, true)); // Debugging line
+
+    if (!$genre_id) {
+        echo json_encode(["error" => "Genre ID is required."]);
+        exit;
+    }
+
+    // $games = get_games_of_genre($pdo, (int)$genre_id);
+
+    $rawg_genre_url = "$rawg_url?key=$key&genres=$genre_id&page=$page&page_size=$page_size";
+
+    if ($sort === 'rating') {
+        $rawg_genre_url .= "&ordering=-rating";
+    } elseif ($sort === 'alphabetical') {
+        $rawg_genre_url .= "&ordering=name";
+    }
+
+    $rawg_response = file_get_contents($rawg_genre_url);
+
+    if ($rawg_response === FALSE) {
+        die(json_encode(["error" => "Failed to fetch data from RAWG API."]));
+    }
+
+    $data = json_decode($rawg_response, true);
+    $simplified = [];
+
+    foreach ($data['results'] as $game) {
+        $simplified[] = [
+            'id' => $game['id'],
+            'name' => $game['name'],
+            'released' => $game['released'],
+            'rating' => $game['rating'],
+            'background_image' => $game['background_image'],
+            'genres' => array_map(fn($genre) => $genre['name'], $game['genres']),
+        ];
+    }
+
+    // if ($sort === 'alphabetical') {
+    //     usort($simplified, fn($a, $b) => strcmp($a['name'], $b['name']));
+    // } elseif ($sort === 'rating') {
+    //     usort($simplified, fn($a, $b) => $b['rating'] <=> $a['rating']);
+    // }
 
     echo json_encode([
         'results' => $simplified,
@@ -282,4 +377,6 @@ $output = ob_get_clean(); // Get the buffer contents
 if (!empty($output)) {
     error_log("Unexpected output: " . $output); // Log unexpected output
 }
+echo json_encode(["error" => "No valid response generated."]);
+exit;
 ?>
