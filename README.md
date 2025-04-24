@@ -80,7 +80,68 @@ CREATE TABLE `jnct_game_category` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 ```
 
----
+### Frontend Design
+The frontend was made after looking into the RAWG API design, split into two sections: search and collection. Both files make requests to the ![php file](GameArchive/backend/script.php), both GET and POST requests and leaving all backend requests to both the API and database through the PHP server.
+#### App.tsx
+The homepage offers a search function with a few different options: title or genre search (and a follow up textbox or genre dropdown), and sorting results alphabetically or by rating (out of 5). Then the search will make a GET request for a page of 9 results, following up with another page whenever the next page button is pressed at the bottom of the screen. This then allows the user to opena modal of any shown games and see their info or add them to their collection, which generates a POST request to the PHP server.
+##### App Fetch
+```js
+fetch(
+      `http://localhost:8000/script.php?action=search&query=${encodeURIComponent(searchQuery)}&type=${searchType}&page=${page}&sort=${sortType}`
+    )
+```
+```js
+fetch(`http://localhost:8000/script.php?action=genreSearch&genre_id=${genreId}&page=${page}&sort=${sortType}`)
+```
+```js
+fetch('http://localhost:8000/script.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', game }),
+    })
+```
+#### Collection.tsx
+Collection starts with a GET request to retrieve all saved games with the filters `genre` and `status` defaulting to all. You can choose any of the 19 genres and also filter by game status (a saved game defaults to `non_started`) with the options `not_started, completed, playing, on_hold, dropped`. When clicking on a game you open a modal that will show more details, allow you to edit `notes`, `status`, and `personal_rating` in a POST request or delete the game from your collection with a different POST request.
+##### Collection Fetch
+```js
+fetch('http://localhost:8000/script.php?action=getCollection')
+```
+```js
+fetch('http://localhost:8000/script.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', game_id: gameId }),
+    })
+```
+```js
+fetch('http://localhost:8000/script.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update', game: selectedGame }),
+    })
+```
+
+### Backend Design (PHP Server)
+#### General Desing
+The format to PHP requests take `GET/POST` and then the `action` specifies what is being done, having the options:
+```
+GET: search, genreSearch, getCollection
+POST: save, delete, update
+```
+With `search` and `genreSearch` being API requests rather than SQL queries. For GETS we need to set information after making a fetch, as seen below
+```php
+foreach ($data['results'] as $game) {
+        $simplified[] = [
+            'id' => $game['id'],
+            'name' => $game['name'],
+            'released' => $game['released'] ?? 'Unknown', // Default to 'Unknown' if not set
+            // 'description' => $game['description'] ?? 'No description available.', // Default to placeholder
+            'rating' => $game['rating'] ?? 0, // Default to 0 if not set
+            'background_image' => $game['background_image'] ?? '', // Default to empty string if not set
+            'genres' => array_map(fn($genre) => $genre['name'], $game['genres'] ?? []), // Handle missing genres
+        ];
+    }
+```
 
 ## How To Use
 ### Prerequisites
